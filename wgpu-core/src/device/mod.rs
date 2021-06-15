@@ -679,18 +679,22 @@ impl<B: GfxBackend> Device<B> {
             ));
         }
         let mut view_caps = hal::image::ViewCapabilities::empty();
-        // 2D textures with array layer counts that are multiples of 6 could be cubemaps
+
+        // 2D textures with array layer counts that are multiples of 6 and have square 2D dimensions could be cubemaps
         // Following gpuweb/gpuweb#68 always add the hint in that case
-        if desc.dimension == TextureDimension::D2
-            && desc.size.depth_or_array_layers % 6 == 0
-            && (desc.size.depth_or_array_layers == 6
-                || self
-                    .downlevel
-                    .flags
-                    .contains(wgt::DownlevelFlags::CUBE_ARRAY_TEXTURES))
-        {
+
+        let is_2d = desc.dimension == TextureDimension::D2;
+        let is_square = desc.size.width == desc.size.height;
+        let is_multiple_of_6 = desc.size.depth_or_array_layers % 6 == 0;
+        let is_supported_array = desc.size.depth_or_array_layers == 6
+            || self
+                .downlevel
+                .flags
+                .contains(wgt::DownlevelFlags::CUBE_ARRAY_TEXTURES);
+
+        if is_2d && is_square && is_multiple_of_6 && is_supported_array {
             view_caps |= hal::image::ViewCapabilities::KIND_CUBE;
-        };
+        }
 
         // TODO: 2D arrays, cubemap arrays
 
